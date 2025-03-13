@@ -1,53 +1,45 @@
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { AuthState, User, UserRole } from '@/types/auth';
+import { 
+  initializeStorage, 
+  authenticateUser, 
+  getCurrentUser, 
+  logoutUser 
+} from '@/services/storageService';
 
 interface AuthContextType extends AuthState {
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Simple user database for demo purposes
-const USERS = {
-  admin: { password: 'admin123', role: 'admin' as UserRole },
-  club: { password: 'club123', role: 'interviewer' as UserRole },
-  // // Added college users
-  // '23107104': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24129008': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24128017': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24106078': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24128062': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24107078': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24127056': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24127034': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24127033': { password: 'password123', role: 'interviewer' as UserRole },
-  // '23107116': { password: 'password123', role: 'interviewer' as UserRole },
-  // '24129029': { password: 'password123', role: 'interviewer' as UserRole },
-  // '23127035': { password: 'password123', role: 'interviewer' as UserRole },
-  // '23128025': { password: 'password123', role: 'interviewer' as UserRole },
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>(() => {
-    const savedUser = localStorage.getItem('user');
+    // Initialize storage first
+    initializeStorage();
+    
+    // Check if user is already logged in
+    const storedUser = getCurrentUser();
     return {
-      user: savedUser ? JSON.parse(savedUser) : null,
-      isAuthenticated: !!savedUser,
+      user: storedUser ? {
+        username: storedUser.name,
+        role: storedUser.role
+      } : null,
+      isAuthenticated: !!storedUser,
     };
   });
 
-  const login = async (username: string, password: string): Promise<boolean> => {
-    const userEntry = USERS[username as keyof typeof USERS];
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const authenticatedUser = authenticateUser(email, password);
     
-    if (userEntry && userEntry.password === password) {
+    if (authenticatedUser) {
       const user: User = {
-        username,
-        role: userEntry.role,
+        username: authenticatedUser.name,
+        role: authenticatedUser.role,
       };
       
-      localStorage.setItem('user', JSON.stringify(user));
       setAuthState({ user, isAuthenticated: true });
       return true;
     }
@@ -55,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('user');
+    logoutUser();
     setAuthState({ user: null, isAuthenticated: false });
   };
 

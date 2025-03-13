@@ -11,14 +11,14 @@ import { addRating } from "@/lib/db";
 interface Rating {
   presentation: number;
   communication: number;
-  technicalSkills: number;
+  visionAndMission: number;
+  achievements: number;
+  leadership: number;
   problemSolving: number;
   teamwork: number;
-  leadership: number;
-  initiative: number;
-  attitude: number;
-  adaptability: number;
-  overallImpression: number;
+  creativityAndInnovation: number;
+  motivationAndPassion: number;
+  professionalism: number;
 }
 
 interface RatingFormProps {
@@ -42,27 +42,27 @@ export function RatingForm({
   const [ratings, setRatings] = useState<Rating>({
     presentation: 0,
     communication: 0,
-    technicalSkills: 0,
+    visionAndMission: 0,
+    achievements: 0,
+    leadership: 0,
     problemSolving: 0,
     teamwork: 0,
-    leadership: 0,
-    initiative: 0,
-    attitude: 0,
-    adaptability: 0,
-    overallImpression: 0,
+    creativityAndInnovation: 0,
+    motivationAndPassion: 0,
+    professionalism: 0,
   });
 
   const ratingParams = [
-    { id: "presentation", label: "Presentation" },
-    { id: "communication", label: "Communication" },
-    { id: "technicalSkills", label: "Technical Skills" },
-    { id: "problemSolving", label: "Problem Solving" },
+    { id: "presentation", label: "Presentation Skills" },
+    { id: "communication", label: "Communication Skills" },
+    { id: "visionAndMission", label: "Vision & Mission" },
+    { id: "achievements", label: "Achievements" },
+    { id: "leadership", label: "Leadership Skills" },
+    { id: "problemSolving", label: "Problem-Solving Ability" },
     { id: "teamwork", label: "Teamwork" },
-    { id: "leadership", label: "Leadership" },
-    { id: "initiative", label: "Initiative" },
-    { id: "attitude", label: "Attitude" },
-    { id: "adaptability", label: "Adaptability" },
-    { id: "overallImpression", label: "Overall Impression" },
+    { id: "creativityAndInnovation", label: "Creativity & Innovation" },
+    { id: "motivationAndPassion", label: "Motivation & Passion" },
+    { id: "professionalism", label: "Professionalism" },
   ] as const;
 
   const handleRatingChange = (param: keyof Rating, value: number) => {
@@ -108,12 +108,12 @@ export function RatingForm({
     }
 
     try {
-      // Add rating to IndexedDB
+      // Add rating to storage
       await addRating({
         id: crypto.randomUUID(),
         candidateId,
         interviewer,
-        scores: { ...ratings },
+        scores: ratings,
         remarks,
         ratedAt: new Date(),
       });

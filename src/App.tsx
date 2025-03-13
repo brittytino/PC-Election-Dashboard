@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -22,7 +23,7 @@ function App() {
     <AuthProvider>
       <Router>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           
           {/* Admin Routes */}
@@ -40,7 +41,7 @@ function App() {
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminCandidateDetail />
               </ProtectedRoute>
-            } 
+            }
           />
           <Route
             path="/admin/reports"

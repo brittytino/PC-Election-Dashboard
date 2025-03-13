@@ -1,125 +1,102 @@
 
-import { useEffect, useState } from "react";
-import { getRatingsByCandidate } from "@/lib/db";
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  ResponsiveContainer,
-} from "recharts";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
+import { getRatingsByCandidate } from "@/lib/db";
 
 interface CandidateRatingChartProps {
   candidateId: string;
   candidateName: string;
 }
 
-export function CandidateRatingChart({
-  candidateId,
-  candidateName,
-}: CandidateRatingChartProps) {
+export function CandidateRatingChart({ candidateId, candidateName }: CandidateRatingChartProps) {
   const [chartData, setChartData] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchRatings = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch all ratings for this candidate
         const ratings = await getRatingsByCandidate(candidateId);
         
         if (ratings.length === 0) {
-          setError("No ratings found for this candidate");
+          setChartData([]);
           setLoading(false);
           return;
         }
-
-        // Calculate average scores for each parameter
-        const averages = {
-          presentation: 0,
-          communication: 0,
-          technicalSkills: 0,
-          problemSolving: 0,
-          teamwork: 0,
-          leadership: 0,
-          initiative: 0,
-          attitude: 0,
-          adaptability: 0,
-          overallImpression: 0,
+        
+        // Calculate average for each parameter
+        const paramCounts: {[key: string]: {sum: number, count: number}} = {};
+        
+        // Initialize all parameters
+        const paramLabels = {
+          presentation: "Presentation Skills",
+          communication: "Communication Skills",
+          visionAndMission: "Vision & Mission",
+          achievements: "Achievements",
+          leadership: "Leadership Skills",
+          problemSolving: "Problem-Solving",
+          teamwork: "Teamwork",
+          creativityAndInnovation: "Creativity",
+          motivationAndPassion: "Motivation",
+          professionalism: "Professionalism",
         };
-
-        ratings.forEach((rating) => {
-          Object.keys(averages).forEach((key) => {
-            averages[key as keyof typeof averages] += 
-              rating.scores[key as keyof typeof rating.scores] / ratings.length;
+        
+        Object.keys(paramLabels).forEach(param => {
+          paramCounts[param] = { sum: 0, count: 0 };
+        });
+        
+        // Sum up ratings
+        ratings.forEach(rating => {
+          Object.entries(rating.scores).forEach(([param, score]) => {
+            if (paramCounts[param]) {
+              paramCounts[param].sum += Number(score);
+              paramCounts[param].count++;
+            }
           });
         });
-
-        // Format data for the radar chart
-        const data = Object.entries(averages).map(([key, value]) => ({
-          parameter: key
-            .replace(/([A-Z])/g, " $1")
-            .replace(/^./, (str) => str.toUpperCase()),
-          score: parseFloat(value.toFixed(1)),
+        
+        // Calculate averages and format for chart
+        const data = Object.entries(paramCounts).map(([param, { sum, count }]) => ({
+          parameter: paramLabels[param as keyof typeof paramLabels],
+          value: count > 0 ? sum / count : 0,
           fullMark: 5,
         }));
-
+        
         setChartData(data);
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching ratings:", error);
-        setError("Failed to load ratings data");
+        console.error("Error fetching rating data for chart:", error);
         setLoading(false);
       }
     };
-
-    fetchRatings();
+    
+    fetchData();
   }, [candidateId]);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="pt-6 text-center">
-          Loading candidate ratings...
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="pt-6 text-center text-red-500">
-          {error}
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <Card className="bg-white/50 backdrop-blur-sm border border-slate-200">
       <CardHeader>
-        <CardTitle>Rating Analysis: {candidateName}</CardTitle>
+        <CardTitle>Rating Analysis</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[400px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart outerRadius="80%" data={chartData}>
+        {loading ? (
+          <div className="flex justify-center items-center h-[300px]">
+            <p className="text-slate-500">Loading chart data...</p>
+          </div>
+        ) : chartData.length === 0 ? (
+          <div className="flex justify-center items-center h-[300px]">
+            <p className="text-slate-500">No ratings available yet</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
               <PolarGrid />
-              <PolarAngleAxis
-                dataKey="parameter"
-                tick={{ fill: "#64748b", fontSize: 12 }}
-              />
-              <Radar
-                name="Score"
-                dataKey="score"
-                stroke="#2563eb"
-                fill="#3b82f6"
-                fillOpacity={0.6}
-              />
+              <PolarAngleAxis dataKey="parameter" />
+              <Radar name={candidateName} dataKey="value" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
             </RadarChart>
           </ResponsiveContainer>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

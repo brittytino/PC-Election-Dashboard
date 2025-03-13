@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
@@ -21,14 +21,14 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(username, password);
+      const success = await login(email, password);
       if (success) {
         toast({
           title: "Success",
           description: "Login successful!",
         });
-        // Redirect based on role
-        const dashboardPath = username === 'admin' ? '/admin/dashboard' : '/interviewer/dashboard';
+        // Redirect based on email
+        const dashboardPath = email === 'admin@srcas.ac.in' ? '/admin/dashboard' : '/interviewer/dashboard';
         navigate(dashboardPath);
       } else {
         toast({
@@ -65,10 +65,10 @@ const Login = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Input
-                      type="text"
-                      placeholder="Username or Reg. No."
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
+                      type="email"
+                      placeholder="Email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       className="w-full"
                     />
                   </div>
@@ -90,31 +90,23 @@ const Login = () => {
               <TabsContent value="accounts" className="space-y-4">
                 <div className="rounded-md bg-blue-50 p-4 border border-blue-200">
                   <h3 className="font-semibold text-blue-800">Admin Account</h3>
-                  <p className="text-sm text-blue-700 mt-1">Username: admin</p>
+                  <p className="text-sm text-blue-700 mt-1">Email: admin@srcas.ac.in</p>
                   <p className="text-sm text-blue-700">Password: admin123</p>
                 </div>
                 
                 <div className="rounded-md bg-green-50 p-4 border border-green-200">
-                  <h3 className="font-semibold text-green-800">Club Interviewer</h3>
-                  <p className="text-sm text-green-700 mt-1">Username: club</p>
-                  <p className="text-sm text-green-700">Password: club123</p>
-                </div>
-                
-                <div className="rounded-md bg-amber-50 p-4 border border-amber-200">
-                  <h3 className="font-semibold text-amber-800">Student Accounts</h3>
-                  <p className="text-sm text-amber-700 mt-1">
-                    Students can log in using their registration number (e.g., 23107104, 24129008, etc.)
-                  </p>
-                  <p className="text-sm text-amber-700">
-                    Password for all student accounts: password123
-                  </p>
+                  <h3 className="font-semibold text-green-800">Interviewer Accounts</h3>
+                  <p className="text-sm text-green-700 mt-1">Email: interviewer1@srcas.ac.in</p>
+                  <p className="text-sm text-green-700">Email: interviewer2@srcas.ac.in</p>
+                  <p className="text-sm text-green-700">Email: interviewer3@srcas.ac.in</p>
+                  <p className="text-sm text-green-700 mt-1">Password for all: club123</p>
                 </div>
               </TabsContent>
             </Tabs>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
             <div className="text-xs text-center text-gray-500 w-full">
-              Click "Available Accounts" to see login credentials
+              This system works 100% offline - all data is stored locally in your browser
             </div>
           </CardFooter>
         </Card>

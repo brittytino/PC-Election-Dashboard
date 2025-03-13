@@ -1,35 +1,31 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RatingForm } from "@/components/rating/RatingForm";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CandidateRatingChart } from "@/components/charts/CandidateRatingChart";
-import { useAuth } from "@/contexts/AuthContext";
 import { ArrowLeft, User, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getCandidate, getRatingsByCandidate } from "@/lib/db";
 
-export default function CandidateDetail() {
+export default function AdminCandidateDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { toast } = useToast();
   const [candidate, setCandidate] = useState<any | null>(null);
   const [ratings, setRatings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hasRated, setHasRated] = useState(false);
 
   useEffect(() => {
-    const fetchCandidate = async () => {
+    const fetchData = async () => {
       try {
         if (!id) {
-          navigate("/interviewer/dashboard");
+          navigate("/admin/dashboard");
           return;
         }
         
-        // Fetch candidate details
+        // Fetch candidate
         const candidateData = await getCandidate(id);
         if (!candidateData) {
           toast({
@@ -37,69 +33,68 @@ export default function CandidateDetail() {
             description: "Candidate not found",
             variant: "destructive",
           });
-          navigate("/interviewer/dashboard");
+          navigate("/admin/dashboard");
           return;
         }
         
         setCandidate(candidateData);
         
-        // Fetch all ratings for this candidate
+        // Fetch ratings for this candidate
         const candidateRatings = await getRatingsByCandidate(id);
         setRatings(candidateRatings);
         
-        // Check if current interviewer has already rated this candidate
-        if (user?.username) {
-          const hasInterviewerRated = candidateRatings.some(
-            rating => rating.interviewer === user.username
-          );
-          setHasRated(hasInterviewerRated);
-        }
-        
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching candidate:", error);
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
           description: "Could not load candidate details",
           variant: "destructive",
         });
-        navigate("/interviewer/dashboard");
+        navigate("/admin/dashboard");
       }
     };
 
-    if (id) {
-      fetchCandidate();
-    } else {
-      navigate("/interviewer/dashboard");
-    }
-  }, [id, navigate, toast, user?.username]);
+    fetchData();
+  }, [id, navigate, toast]);
 
-  const calculateAverageRating = () => {
-    if (ratings.length === 0) return 0;
+  const calculateAverageScores = () => {
+    if (ratings.length === 0) return null;
     
-    let totalAvg = 0;
+    const initialScores = {
+      presentation: 0,
+      communication: 0,
+      technicalSkills: 0,
+      problemSolving: 0,
+      teamwork: 0,
+      leadership: 0,
+      initiative: 0,
+      attitude: 0,
+      adaptability: 0,
+      overallImpression: 0,
+    };
     
-    ratings.forEach(rating => {
-      const scores = Object.values(rating.scores);
-      const avg = scores.reduce((sum: number, score: number) => sum + score, 0) / scores.length;
-      totalAvg += avg;
+    const totalScores = ratings.reduce((acc, rating) => {
+      Object.keys(rating.scores).forEach(key => {
+        acc[key as keyof typeof initialScores] += Number(rating.scores[key]);
+      });
+      return acc;
+    }, {...initialScores});
+    
+    const averageScores: {[key: string]: number} = {};
+    Object.keys(totalScores).forEach(key => {
+      averageScores[key] = totalScores[key as keyof typeof totalScores] / ratings.length;
     });
     
-    return totalAvg / ratings.length;
+    return averageScores;
   };
 
-  const handleRatingSubmitted = async () => {
-    // Refresh the ratings after submitting a new one
-    if (id) {
-      const updatedRatings = await getRatingsByCandidate(id);
-      setRatings(updatedRatings);
-      setHasRated(true);
-      
-      toast({
-        title: "Success",
-        description: "Your rating has been saved and will be visible to the admin.",
-      });
-    }
+  const calculateOverallAverage = () => {
+    const avgScores = calculateAverageScores();
+    if (!avgScores) return 0;
+    
+    const sum = Object.values(avgScores).reduce((acc, val) => acc + Number(val), 0);
+    return sum / Object.values(avgScores).length;
   };
 
   if (loading) {
@@ -119,7 +114,7 @@ export default function CandidateDetail() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate("/interviewer/dashboard")}
+            onClick={() => navigate("/admin/dashboard")}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -161,19 +156,17 @@ export default function CandidateDetail() {
                 <div>{candidate.year}</div>
                 <div className="text-slate-500">Reg No:</div>
                 <div>{candidate.regNo}</div>
+                <div className="text-slate-500">Email:</div>
+                <div className="truncate max-w-[120px]">{candidate.email}</div>
                 <div className="text-slate-500">Applied:</div>
                 <div>
                   {new Date(candidate.appliedAt || new Date()).toLocaleDateString()}
                 </div>
-                {ratings.length > 0 && (
-                  <>
-                    <div className="text-slate-500">Avg. Rating:</div>
-                    <div className="flex items-center">
-                      <Star className="h-4 w-4 fill-amber-400 text-amber-400 mr-1" />
-                      {calculateAverageRating().toFixed(1)}
-                    </div>
-                  </>
-                )}
+                <div className="text-slate-500">Avg. Rating:</div>
+                <div className="flex items-center">
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400 mr-1" />
+                  {calculateOverallAverage().toFixed(1)}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -186,27 +179,68 @@ export default function CandidateDetail() {
           </div>
         </div>
 
-        {/* Rating Form */}
-        {!hasRated ? (
-          <RatingForm
-            candidateId={id || ""}
-            candidateName={candidate.name}
-            interviewer={user?.username || "unknown"}
-            onClose={() => navigate("/interviewer/dashboard")}
-            onSubmitSuccess={handleRatingSubmitted}
-          />
-        ) : (
+        {/* Ratings List */}
+        <Card className="bg-white/50 backdrop-blur-sm border border-slate-200">
+          <CardHeader>
+            <CardTitle>Interview Ratings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {ratings.length === 0 ? (
+              <div className="text-center py-4 text-slate-500">
+                No ratings available yet
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Interviewer</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Avg. Score</TableHead>
+                    <TableHead>Remarks</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ratings.map((rating) => {
+                    const scores = Object.values(rating.scores);
+                    const avgScore = scores.map(Number).reduce((sum, score) => sum + score, 0) / scores.length;
+                    
+                    return (
+                      <TableRow key={rating.id}>
+                        <TableCell className="font-medium">{rating.interviewer}</TableCell>
+                        <TableCell>{new Date(rating.ratedAt).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Star className="h-4 w-4 fill-amber-400 text-amber-400 mr-1" />
+                            {avgScore.toFixed(1)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">{rating.remarks}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Detailed Scores */}
+        {ratings.length > 0 && (
           <Card className="bg-white/50 backdrop-blur-sm border border-slate-200">
-            <CardContent className="pt-6">
-              <div className="text-center py-4 text-emerald-600">
-                <p className="text-lg font-medium">You have already rated this candidate</p>
-                <p className="text-slate-500 mt-1">Thank you for your feedback!</p>
-                <Button 
-                  className="mt-4" 
-                  onClick={() => navigate("/interviewer/dashboard")}
-                >
-                  Return to Dashboard
-                </Button>
+            <CardHeader>
+              <CardTitle>Average Scores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {calculateAverageScores() && Object.entries(calculateAverageScores() || {}).map(([key, value]) => (
+                  <div key={key} className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
+                    <h3 className="text-sm font-medium text-slate-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</h3>
+                    <div className="mt-1 flex items-center">
+                      <Star className="h-4 w-4 fill-amber-400 text-amber-400 mr-1" />
+                      <span className="text-lg font-semibold">{value.toFixed(1)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
